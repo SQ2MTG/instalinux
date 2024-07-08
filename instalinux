@@ -1,10 +1,38 @@
 #!/bin/bash
+# GDZ instalinux v0.4b #
+# SQ2MTG 2024
 
-# GDZ instalinux v0.4 #
+# dodalem sprawdzanie wolnego miejsca na dysku bo raspberrypi lubi sie zapychac od skryptu
+# I added checking the free disk space because raspberrypi tends to fill up
 
 
+## najwazniejsze BHP
 clear
-sleep 2
+
+## funkcje
+
+check_disk_space() {
+    echo -e "\033[0m" INSTALINUX: "\033[41;1m" Sprawdzam dostepne miejsce na dysku... "\033[0m"
+    local disk_usage=$(df -h . | awk 'NR==2 {print $5}' | sed 's/%//')
+        if [ $disk_usage -gt 85 ]; then
+        echo -e "\033[0m" INSTALINUX: "\033[41;1m" Wolne miejsce na dysku jest niewystarczajace! <15%."\033[0m"
+        while true; do
+            read -p "Czy chcesz kontynuowac? (y/n): " choice
+            case "$choice" in
+                y|Y ) echo "Kontynuuje..."; break;;
+                n|N ) echo "Przerywam skrypt."; exit 1;;
+                * ) echo "Uzyj 'y' lub 'n'.";;
+            esac
+        done
+    else
+        echo "Wolne miejsce na dysku jest wystarczajace zeby kontynuowac..."
+	sleep 3
+    fi
+}
+
+
+## glowny skrypt
+
 
 echo "██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗███╗   ██╗██╗   ██╗██╗  ██╗";
 echo "██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║████╗  ██║██║   ██║╚██╗██╔╝";
@@ -14,7 +42,7 @@ echo "██║██║ ╚████║███████║   ██║ 
 echo "╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝";
 echo "                                                                            ";
 sleep 2
-read -p "Skrypt instalacyjny linux, nacisnij dowolny klawisz..."
+read -p "Skrypt instalacyjny linux, nacisnij ENTER zeby kontynuowac..."
 
 clear
 
@@ -41,6 +69,9 @@ chmod 777 /opt/* &&
 
 echo -e "\033[0m" INSTALINUX: "\033[41;1m" Katalogi utworzone "\033[0m"
 sleep 2
+
+check_disk_space
+
 
 onoff=off
 cmd=(dialog --output-fd 1 --separate-output --extra-button --extra-label 'Wszystkie' --cancel-label 'Zadne' --checklist 'Wybierz pakiety do instalacji:' 0 0 0)
@@ -71,15 +102,16 @@ clear
 for choice in $choices
 do
     case $choice in
-        1) sudo apt update -y && sudo apt upgrade -y ;;
-        2) sudo apt install curl git make cmake wget gzip autoconf tar ssh -y ;;
-        3) sudo apt install build-essential software-properties-common -y ;;
-        4) sudo apt install g++ gcc golang nodejs npm -y ;;
-        5) sudo apt install samba php libapache2-mod-php php-mbstring php-cgi php-common php-curl -y ;;
-        6) sudo apt install libpopt-dev libsigc++-2.0-dev libgcrypt20-dev libgsm1-dev librtlsdr-dev libusb-dev libjsoncpp-dev libgpiod2 libgpiod-dev libcurl4-openssl-dev libjson-perl libwww-perl -y ;;
-        7) sudo apt install alsa-utils libspeex-dev libspeexdsp-dev libopus-dev libvorbis-dev libasound2-dev -y ;;
-        8) sudo apt install htop rsyslog rdate chkrootkit -y && mkdir -p /usr/local/lynis && cd /usr/local && wget https://downloads.cisofy.com/lynis/lynis-3.0.9.tar.gz && tar xfvz lynis-3.0.9.tar.gz ;;
-		9) sudo apt install cifs-utils psmisc samba winbind -y && echo "//10.10.0.62/cloud /opt/cloud   cifs username=gdz,password=aa 0 0" >> /etc/fstab && sudo mount.cifs //10.10.0.62/cloud /opt/cloud/ -o user=gdz,pass=aa ;;
+        1) sudo apt update -y && sudo apt upgrade -y && check_disk_space ;;
+        2) check_disk_space && sudo apt install curl git make cmake wget gzip autoconf tar ssh -y ;;
+        3) check_disk_space && sudo apt install build-essential software-properties-common -y ;;
+        4) check_disk_space && sudo apt install g++ gcc golang nodejs npm -y ;;
+        5) check_disk_space && sudo apt install samba php libapache2-mod-php php-mbstring php-cgi php-common php-curl -y ;;
+        6) check_disk_space && sudo apt install libpopt-dev libsigc++-2.0-dev libgcrypt20-dev libgsm1-dev librtlsdr-dev libusb-dev libjsoncpp-dev libgpiod2 libgpiod-dev libcurl4-openssl-dev libjson-perl libwww-perl -y ;;
+        7) check_disk_space && sudo apt install alsa-utils libspeex-dev libspeexdsp-dev libopus-dev libvorbis-dev libasound2-dev -y ;;
+        8) check_disk_space && sudo apt install htop rsyslog rdate chkrootkit -y && mkdir -p /usr/local/lynis && cd /usr/local && wget https://downloads.cisofy.com/lynis/lynis-3.0.9.tar.gz && tar xfvz lynis-3.0.9.tar.gz ;;
+# temp disable	9) sudo apt install cifs-utils psmisc samba winbind -y && echo "//10.10.0.62/cloud /opt/cloud   cifs username=gdz,password=aa 0 0" >> /etc/fstab && sudo mount.cifs //10.10.0.62/cloud /opt/cloud/ -o user=gdz,pass=aa ;;
+	9) check_disk_space && sudo apt install cifs-utils psmisc samba winbind -y ;;
     esac
 done
 #sleep infinity
@@ -98,7 +130,7 @@ load-dialog () {
                 4 'ZeroTier + join GDZ' $onoff2
                 5 'Cockpit + plugins' $onoff2
                 6 'Docker + Compose + portainer' $onoff2
-                7 'Zabbix agent' $onoff2
+                7 'Zabbix agent2' $onoff2
                 8 'fwd2tg > syslog (wymaga mount /opt/cloud)' $onoff2
     )
         choices2=$("${cmd2[@]}" "${options[@]}")
@@ -117,7 +149,7 @@ for choice2 in $choices2
 do
     case $choice2 in
         1) clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Aktywuje rc.local... "\033[0m" && cd ~ && bash <(curl -s 10.10.0.10/data/rc-local.txt) && echo -e "\033[0m" INSTALINUX: "\033[41;1m" rc.local aktywny "\033[0m" ;;
-        2) clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Konfiguracja RTL-SDR "\033[0m" && cd ~ && git clone https://github.com/osmocom/rtl-sdr && cd rtl-sdr/ && mkdir build && cd build && cmake ../ -DINSTALL_UDEV_RULES=ON -DDETACH_KERNEL_DRIVER=ON && make && sudo make install && sudo cp ../rtl-sdr.rules /etc/udev/rules.d/ && sudo ldconfig && echo "blacklist dvb_core blacklist dvb_usb_rtl28xxu
+        2) check_disk_space && clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Konfiguracja RTL-SDR "\033[0m" && cd ~ && git clone https://github.com/osmocom/rtl-sdr && cd rtl-sdr/ && mkdir build && cd build && cmake ../ -DINSTALL_UDEV_RULES=ON -DDETACH_KERNEL_DRIVER=ON && make && sudo make install && sudo cp ../rtl-sdr.rules /etc/udev/rules.d/ && sudo ldconfig && echo "blacklist dvb_core blacklist dvb_usb_rtl28xxu
 blacklist dvb_usb_rtl2832u
 blacklist dvb_usb_v2
 blacklist e4000
@@ -128,18 +160,18 @@ blacklist rtl2832
 blacklist sdr_msi3101
 blacklist msi001
 blacklist msi2500" > no-rtl.conf && sudo mv no-rtl.conf /etc/modprobe.d/ ;;
-        3) clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Konfiguracja RSP1 SDR "\033[0m" && cd ~ && git clone https://github.com/f4exb/libmirisdr-4.git && cd libmirisdr-4 && mkdir build; cd build && cmake -Wno-dev -DCMAKE_INSTALL_PREFIX=/opt/install/libmirisdr .. && make -j $(nproc) install ;;
-        4) clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Konfiguracja VPN - ZeroTier "\033[0m" && cd ~ && curl -s https://install.zerotier.com | sudo bash && sudo service zerotier-one start && sudo zerotier-cli join 9bee8941b57a1201 ;;
-        5) clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Konfiguracja modulu Cockpit "\033[0m" && cd ~ && sudo apt-get install -y cockpit && curl -LO https://github.com/45Drives/cockpit-identities/releases/download/v0.1.12/cockpit-identities_0.1.12-1focal_all.deb && sudo apt install ./cockpit-identities_0.1.12-1focal_all.deb && curl -LO https://github.com/45Drives/cockpit-file-sharing/releases/download/v3.2.9/cockpit-file-sharing_3.2.9-2focal_all.deb && sudo apt install ./cockpit-file-sharing_3.2.9-2focal_all.deb ;;
-        6) clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Konfiguracja pakietu Docker "\033[0m" && cd ~ && curl -fsSL https://test.docker.com -o test-docker.sh && sudo sh test-docker.sh && apt install docker-compose -y && docker run -d \
+        3) check_disk_space && clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Konfiguracja RSP1 SDR "\033[0m" && cd ~ && git clone https://github.com/f4exb/libmirisdr-4.git && cd libmirisdr-4 && mkdir build; cd build && cmake -Wno-dev -DCMAKE_INSTALL_PREFIX=/opt/install/libmirisdr .. && make -j $(nproc) install ;;
+        4) check_disk_space && clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Konfiguracja VPN - ZeroTier "\033[0m" && cd ~ && curl -s https://install.zerotier.com | sudo bash && sudo service zerotier-one start && sudo zerotier-cli join 9bee8941b57a1201 ;;
+        5) check_disk_space && clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Konfiguracja modulu Cockpit "\033[0m" && cd ~ && sudo apt-get install -y cockpit && curl -LO https://github.com/45Drives/cockpit-identities/releases/download/v0.1.12/cockpit-identities_0.1.12-1focal_all.deb && sudo apt install ./cockpit-identities_0.1.12-1focal_all.deb && curl -LO https://github.com/45Drives/cockpit-file-sharing/releases/download/v3.2.9/cockpit-file-sharing_3.2.9-2focal_all.deb && sudo apt install ./cockpit-file-sharing_3.2.9-2focal_all.deb ;;
+        6) check_disk_space && clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Konfiguracja pakietu Docker "\033[0m" && cd ~ && curl -fsSL https://test.docker.com -o test-docker.sh && sudo sh test-docker.sh && apt install docker-compose -y && docker run -d \
   -p 9001:9001 \
   --name portainer_agent \
   --restart=always \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /var/lib/docker/volumes:/var/lib/docker/volumes \
-  portainer/agent:2.19.4 ;;
-        7) clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Instalacja zabbix-agent2 "\033[0m" && cd ~ && wget 10.10.0.10/data/zabbix && chmod +x zabbix && bash ./zabbix ;;
-        8) clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Instalacja skryptu fwd2tg "\033[0m" && sudo apt install rsyslog -y && cd /opt/skrypty && wget 10.10.0.10/data/make-fwd2tg && chmod +x make-fwd2tg && bash ./make-fwd2tg ;;
+  portainer/agent:latest ;;
+        7) check_disk_space && clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Instalacja zabbix-agent2 "\033[0m" && cd ~ && wget 10.10.0.10/data/zabbix && chmod +x zabbix && bash ./zabbix ;;
+        8) check_disk_space && clear && echo -e "\033[0m" INSTALINUX: "\033[41;1m" Instalacja skryptu fwd2tg "\033[0m" && sudo apt install rsyslog -y && cd /opt/skrypty && wget 10.10.0.10/data/make-fwd2tg && chmod +x make-fwd2tg && bash ./make-fwd2tg ;;
     esac
 done &&
 
