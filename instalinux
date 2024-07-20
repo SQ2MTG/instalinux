@@ -80,14 +80,14 @@ cmd=(dialog --output-fd 1 --separate-output --extra-button --extra-label 'Wszyst
 load-dialog () {
     options=(
                 1 'Update & Upgrade' $onoff
-                2 'curl + git + make + cmake + gdebi + wget + gzip + tar + autoconf + ssh' $onoff
-                3 'build-essential + software-properties-common' $onoff
-                4 'g++ + gcc + golang + nodejs + npm' $onoff
-                5 'php + php(libapache2-mod + mbstring + cgi + common + curl)' $onoff
+                2 'curl git make cmake gdebi wget gzip tar autoconf ssh' $onoff
+                3 'build-essential  software-properties-common g++ gcc' $onoff
+                4 'golang  nodejs  npm' $onoff
+                5 'php packet' $onoff
                 6 'libs packet' $onoff
-                7 'ALSA Audio + libs' $onoff
-                8 'htop + rsyslog + rdate + chkrootkit + lynis audit' $onoff
-                9 'Samba + CIFS + mount cloud' $onoff
+                7 'ALSA Audio libs' $onoff
+                8 'htop  rdate  chkrootkit ' $onoff
+                9 'Samba  CIFS + mount cloud' $onoff
     )
     choices=$("${cmd[@]}" "${options[@]}")
 }
@@ -105,13 +105,13 @@ for choice in $choices
 do
     case $choice in
         1) sudo apt update -y && sudo apt upgrade -y && check_disk_space ;;
-        2) check_disk_space && sudo apt install curl git make cmake wget gzip autoconf tar ssh -y ;;
+        2) check_disk_space && sudo apt install curl git make cmake wget gzip autoconf tar ssh g++ gcc -y ;;
         3) check_disk_space && sudo apt install build-essential software-properties-common -y ;;
-        4) check_disk_space && sudo apt install g++ gcc golang nodejs npm -y ;;
-        5) check_disk_space && sudo apt install samba php libapache2-mod-php php-mbstring php-cgi php-common php-curl -y ;;
+        4) check_disk_space && sudo apt install golang nodejs npm -y ;;
+        5) check_disk_space && sudo apt install php libapache2-mod-php php-mbstring php-cgi php-common php-curl -y ;;
         6) check_disk_space && sudo apt install libpopt-dev libsigc++-2.0-dev libgcrypt20-dev libgsm1-dev librtlsdr-dev libusb-dev libjsoncpp-dev libgpiod2 libgpiod-dev libcurl4-openssl-dev libjson-perl libwww-perl -y ;;
         7) check_disk_space && sudo apt install alsa-utils libspeex-dev libspeexdsp-dev libopus-dev libvorbis-dev libasound2-dev -y ;;
-        8) check_disk_space && sudo apt install htop rsyslog rdate chkrootkit -y && mkdir -p /usr/local/lynis && cd /usr/local && wget https://downloads.cisofy.com/lynis/lynis-3.0.9.tar.gz && tar xfvz lynis-3.0.9.tar.gz ;;
+        8) check_disk_space && sudo apt install htop rdate chkrootkit -y ;;
         9) check_disk_space && sudo apt install cifs-utils psmisc samba winbind -y ;;
     esac
 done
@@ -124,18 +124,20 @@ onoff2=off
 cmd2=(dialog --output-fd 1 --separate-output --extra-button --extra-label 'Wszystkie' --cancel-label 'Zadne' --checklist 'Wybierz oprogramowanie do skonfigurowania:' 0 0 0)
 load-dialog () {
     options=(
-                1 'Aktywuj modul rc.local' $onoff2
+                1 'Przywrocenie rc.local' $onoff2
                 2 'SDR RTL + BLACKLIST' $onoff2
                 3 'SDR RSP1' $onoff2
                 4 'VPN ZeroTier' $onoff2
-                5 'Modul Cockpit + plugins' $onoff2
+                5 'Cockpit + plugins' $onoff2
                 6 'Docker + Compose + portainer' $onoff2
                 7 'Zabbix-agent2' $onoff2
-                8 'skrypt fwd2tg' $onoff2
+                8 'Logs > graylog' $onoff2
+				9 'Lynis audit' $onoff2
     )
     choices2=$("${cmd2[@]}" "${options[@]}")
 }
 load-dialog
+
 exit_code="$?"
 while [[ $exit_code -ne 0 ]]; do
     case $exit_code in
@@ -171,7 +173,8 @@ blacklist msi2500" > no-rtl.conf && sudo mv no-rtl.conf /etc/modprobe.d/ ;;
   -v /var/lib/docker/volumes:/var/lib/docker/volumes \
   portainer/agent:latest ;;
         7) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja zabbix-agent2\033[0m" && cd ~ && wget 10.10.0.10/data/zabbix && chmod +x zabbix && bash ./zabbix ;;
-        8) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja skryptu fwd2tg\033[0m" && sudo apt install rsyslog -y && cd /opt/skrypty && wget 10.10.0.10/data/make-fwd2tg && chmod +x make-fwd2tg && bash ./make-fwd2tg ;;
+        8) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja skryptu Graylog\033[0m" && sudo apt install syslog-ng -y && cd ~ && wget 10.10.0.10/data/graylog.conf && mv graylog.conf /etc/syslog-ng/conf.d/ && syslog-ng-ctl reload;;
+		9) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja Lynis audit tool\033[0m" && sudo curl -fsSL https://packages.cisofy.com/keys/cisofy-software-public.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/cisofy-software-public.gpg && sudo echo "deb [arch=amd64,arm64 signed-by=/etc/apt/trusted.gpg.d/cisofy-software-public.gpg] https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && sudo apt install apt-transport-https && echo "deb https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && apt update && apt install lynis -y ;;
     esac
 done
 
@@ -181,7 +184,6 @@ sleep 5 &&
 sudo apt clean && sudo apt autoclean &&
 cd ~ &&
 rm -r cockpit* zabbix* libmirisdr-4/ test-docker.sh &&
-rm /opt/skrypty/make-fwd2tg &&
 clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja zakonczona\033[0m" &&
 sleep 3
 
