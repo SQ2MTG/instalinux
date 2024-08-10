@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 # GDZ instalinux v0.4c #
 # SQ2MTG 2024
 
@@ -28,7 +29,7 @@ fi
 # Sprawdzanie wolnego miejsca na dysku
 check_disk_space() {
     echo -e "\033[0mINSTALINUX: \033[41;1mSprawdzam dostepne miejsce na dysku...\033[0m"
-    local disk_usage=$(df -h . | awk 'NR==2 {print $5}' | sed 's/%//')
+    local disk_usage=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
     if [ $disk_usage -gt 85 ]; then
         echo -e "\033[0mINSTALINUX: \033[41;1mWolne miejsce na dysku jest niewystarczajace! <15%.\033[0m"
         while true; do
