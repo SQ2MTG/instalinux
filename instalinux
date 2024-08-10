@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-# GDZ instalinux v0.4c #
+# GDZ instalinux v0.4d #
 # SQ2MTG 2024
 
 # Sprawdzanie, czy skrypt jest uruchomiony jako uzytkownik sudo
@@ -117,7 +117,6 @@ do
     esac
 done
 
-clear
 echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja oprogramowania i modulow opcjonalnych\033[0m"
 sleep 2
 
@@ -147,7 +146,6 @@ while [[ $exit_code -ne 0 ]]; do
     esac
     exit_code="$?"
 done
-clear
 for choice2 in $choices2
 do
     case $choice2 in
@@ -185,7 +183,8 @@ sleep 5 &&
 sudo apt clean && sudo apt autoclean &&
 cd ~ &&
 rm -r cockpit* zabbix* libmirisdr-4/ test-docker.sh &&
-clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja zakonczona\033[0m" &&
+c\
+echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja zakonczona\033[0m" &&
 sleep 3
 
 exit 0
