@@ -149,7 +149,7 @@ done
 for choice2 in $choices2
 do
     case $choice2 in
-        1) clear && echo -e "\033[0mINSTALINUX: \033[41;1mAktywuje rc.local...\033[0m" && cd ~ && bash <(curl -s 10.10.0.10/data/rc-local.txt) && echo -e "\033[0mINSTALINUX: \033[41;1mrc.local aktywny\033[0m" ;;
+        1) clear && echo -e "\033[0mINSTALINUX: \033[41;1mAktywuje rc.local...\033[0m" && cd ~ && bash <(curl -s https://www.adminsehow.com/wp-content/uploads/2019/10/rc-local.txt) && echo -e "\033[0mINSTALINUX: \033[41;1mrc.local aktywny\033[0m" ;;
         2) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja RTL-SDR\033[0m" && cd ~ && git clone https://github.com/osmocom/rtl-sdr && cd rtl-sdr/ && mkdir build && cd build && cmake ../ -DINSTALL_UDEV_RULES=ON -DDETACH_KERNEL_DRIVER=ON && make && sudo make install && sudo cp ../rtl-sdr.rules /etc/udev/rules.d/ && sudo ldconfig && echo "blacklist dvb_core blacklist dvb_usb_rtl28xxu
 blacklist dvb_usb_rtl2832u
 blacklist dvb_usb_v2
