@@ -1,7 +1,7 @@
 #!/bin/bash
-set -e
-# GDZ instalinux v0.4d #
-# SQ2MTG 2024
+
+# GDZ instalinux v0.5a #
+# SQ2MTG 2025
 
 # Sprawdzanie, czy skrypt jest uruchomiony jako uzytkownik sudo
 if [[ $(id -u) -ne 0 ]]; then
@@ -16,13 +16,28 @@ if [[ $(id -u) -ne 0 ]]; then
     done
 fi
 
-# Sprawdzenie, czy uzytkownik 'gdz' jest juz dodany do sudoers
-if grep -q "^gdz " /etc/sudoers; then
-    echo "Uzytkownik 'gdz' jest juz dodany do sudoers."
+# Zapytaj użytkownika o nazwę użytkownika do dodania do sudoers
+read -p "Podaj nazwę użytkownika, którego chcesz dodać do sudoers: " user
+
+# Sprawdź, czy użytkownik istnieje w systemie
+if ! id "$user" &>/dev/null; then
+    echo "Użytkownik '$user' nie istnieje w systemie."
+    exit 1
+fi
+
+# Sprawdź, czy użytkownik jest już w pliku /etc/sudoers
+if grep -q "^$user " /etc/sudoers; then
+    echo "Użytkownik '$user' jest już dodany do sudoers."
 else
-    echo -e "\033[0mINSTALINUX: \033[41;1mDodaje nowego uzytkownika do sudoers\033[0m"
-    echo 'gdz  ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-    sleep 1
+    echo "Dodaję użytkownika '$user' do sudoers..."
+    # Dopisanie wpisu do pliku /etc/sudoers
+    # Uwaga: to polecenie wymaga uprawnień administratora, więc może być konieczne uruchomienie skryptu jako root lub użycie sudo
+    echo "$user  ALL=(ALL) NOPASSWD:ALL" | sudo tee -a /etc/sudoers >/dev/null
+    if [ $? -eq 0 ]; then
+        echo "Użytkownik '$user' został dodany do sudoers."
+    else
+        echo "Wystąpił problem podczas dodawania użytkownika do sudoers."
+    fi
 fi
 
 
@@ -62,14 +77,14 @@ read -p "Skrypt instalacyjny linux, nacisnij ENTER zeby kontynuowac..."
 
 clear
 
-echo -e "\033[0mINSTALINUX: \033[41;1mPInstalacja dialog i sudo\033[0m"
+echo -e "\033[0mINSTALINUX: \033[41;1m Instalacja dialog i sudo\033[0m"
 
 apt install sudo -y &&
 apt install dialog -y &&
 clear
 
 echo -e "\033[0mINSTALINUX: \033[41;1mTworze katalogi robocze w /opt\033[0m"
-sudo mkdir -p /opt/{log,skrypty,backup,cloud,cfg}
+sudo mkdir -p /opt/{log,skrypty,backup}
 chmod 777 /opt/*
 echo -e "\033[0mINSTALINUX: \033[41;1mKatalogi utworzone\033[0m"
 sleep 2
@@ -88,7 +103,6 @@ load-dialog () {
                 6 'libs packet' $onoff
                 7 'ALSA Audio libs' $onoff
                 8 'htop  rdate  chkrootkit ' $onoff
-                9 'Samba  CIFS + mount cloud' $onoff
     )
     choices=$("${cmd[@]}" "${options[@]}")
 }
@@ -113,7 +127,6 @@ do
         6) check_disk_space && sudo apt install libpopt-dev libsigc++-2.0-dev libgcrypt20-dev libgsm1-dev librtlsdr-dev libusb-dev libjsoncpp-dev libgpiod2 libgpiod-dev libcurl4-openssl-dev libjson-perl libwww-perl -y ;;
         7) check_disk_space && sudo apt install alsa-utils libspeex-dev libspeexdsp-dev libopus-dev libvorbis-dev libasound2-dev -y ;;
         8) check_disk_space && sudo apt install htop rdate chkrootkit -y ;;
-        9) check_disk_space && sudo apt install cifs-utils psmisc samba winbind -y ;;
     esac
 done
 
@@ -127,12 +140,12 @@ load-dialog () {
                 1 'Przywrocenie rc.local' $onoff2
                 2 'SDR RTL + BLACKLIST' $onoff2
                 3 'SDR RSP1' $onoff2
-                4 'VPN ZeroTier' $onoff2
+                4 'VPN Wireguard' $onoff2
                 5 'Cockpit + plugins' $onoff2
                 6 'Docker + Compose + portainer' $onoff2
-                7 'Zabbix-agent2' $onoff2
-                8 'Logs > graylog' $onoff2
-				9 'Lynis audit' $onoff2
+                7 'Webmin' $onoff2
+				8 'Lynis audit' $onoff2
+                9 'logbot AI' $onoff2
     )
     choices2=$("${cmd2[@]}" "${options[@]}")
 }
@@ -162,8 +175,8 @@ blacklist sdr_msi3101
 blacklist msi001
 blacklist msi2500" > no-rtl.conf && sudo mv no-rtl.conf /etc/modprobe.d/ ;;
         3) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja RSP1 SDR\033[0m" && cd ~ && git clone https://github.com/f4exb/libmirisdr-4.git && cd libmirisdr-4 && mkdir build && cd build && cmake -Wno-dev -DCMAKE_INSTALL_PREFIX=/opt/install/libmirisdr .. && make -j $(nproc) install ;;
-        4) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja VPN - ZeroTier\033[0m" && cd ~ && curl -s https://install.zerotier.com | sudo bash && sudo service zerotier-one start && sudo zerotier-cli join $(curl -s http://10.10.0.10/data/zerotier) ;;
-        5) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja modulu Cockpit\033[0m" && cd ~ && sudo apt-get install -y cockpit && curl -LO https://github.com/45Drives/cockpit-identities/releases/download/v0.1.12/cockpit-identities_0.1.12-1focal_all.deb && sudo apt install ./cockpit-identities_0.1.12-1focal_all.deb && curl -LO https://github.com/45Drives/cockpit-file-sharing/releases/download/v3.2.9/cockpit-file-sharing_3.2.9-2focal_all.deb && sudo apt install ./cockpit-file-sharing_3.2.9-2focal_all.deb ;;
+        4) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja VPN Wireguard\033[0m" && cd ~ && apt install wireguard wireguard-tools -y ;;
+        5) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja modulu Cockpit\033[0m" && cd ~ && sudo apt-get install -y cockpit cockpit-sosreport cockpit-storaged cockpit-docker cockpit-files cockpit-sensors cockpit-pcp && sudo systemctl start cockpit ;;
         6) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja pakietu Docker\033[0m" && cd ~ && curl -fsSL https://test.docker.com -o test-docker.sh && sudo sh test-docker.sh && apt install docker-compose -y && docker run -d \
   -p 9001:9001 \
   --name portainer_agent \
@@ -171,19 +184,19 @@ blacklist msi2500" > no-rtl.conf && sudo mv no-rtl.conf /etc/modprobe.d/ ;;
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /var/lib/docker/volumes:/var/lib/docker/volumes \
   portainer/agent:latest ;;
-        7) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja zabbix-agent2\033[0m" && cd ~ && wget 10.10.0.10/data/zabbix && chmod +x zabbix && bash ./zabbix ;;
-        8) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja skryptu Graylog\033[0m" && sudo apt install syslog-ng -y && cd ~ && wget 10.10.0.10/data/graylog.conf && mv graylog.conf /etc/syslog-ng/conf.d/ && syslog-ng-ctl reload;;
-		9) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja Lynis audit tool\033[0m" && sudo curl -fsSL https://packages.cisofy.com/keys/cisofy-software-public.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/cisofy-software-public.gpg && sudo echo "deb [arch=amd64,arm64 signed-by=/etc/apt/trusted.gpg.d/cisofy-software-public.gpg] https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && sudo apt install apt-transport-https && echo "deb https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && apt update && apt install lynis -y ;;
+        7) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja Webmin\033[0m" && cd ~ && curl -o webmin-setup-repos.sh https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repos.sh && bash webmin-setup-repos.sh && apt update && apt-get install webmin --install-recommends -y ;;
+		8) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja Lynis audit tool\033[0m" && sudo curl -fsSL https://packages.cisofy.com/keys/cisofy-software-public.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/cisofy-software-public.gpg && sudo echo "deb [arch=amd64,arm64 signed-by=/etc/apt/trusted.gpg.d/cisofy-software-public.gpg] https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && sudo apt install apt-transport-https && echo "deb https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && apt update && apt install lynis -y ;;
+        9) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja logbot AI\033[0m" && cd /opt/skrypty && wget --no-check-certificate "https://drive.google.com/file/d/1si6wSC3SC0FDxxd9xfp2Mqj1ZHYvM9HX/view?usp=sharing" -O logbot_fwd.py && chmod +x logbot_fwd.py && cd /etc/systemd/system/ && wget --no-check-certificate "https://drive.google.com/file/d/1vf-Wl1uKPv35b8ZaKjITKRGTID20HRCC/view?usp=sharing" -O logbot.service && chmod 644 logbot.service && systemctl daemon-reload && systemctl enable logbot.service && systemctl start logbot.service ;;
     esac
 done
 
 clear && echo -e "\033[0mINSTALINUX: \033[41;1mUsuwanie plikow roboczych\033[0m" &&
 sleep 5 &&
 
-sudo apt clean && sudo apt autoclean &&
+sudo apt clean && sudo apt autoclean && apt autoremove -y &&
 cd ~ &&
-rm -r cockpit* zabbix* libmirisdr-4/ test-docker.sh &&
-c\
+rm -r cockpit* libmirisdr-4/ test-docker.sh &&
+cd \
 echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja zakonczona\033[0m" &&
 sleep 3
 
