@@ -159,8 +159,8 @@ done
 for choice2 in $choices2
 do
     case $choice2 in
-        1) clear && echo -e "\033[0mINSTALINUX: \033[41;1mAktywuje rc.local...\033[0m" && cd ~ && bash <(curl -s https://www.adminsehow.com/wp-content/uploads/2019/10/rc-local.txt) && echo -e "\033[0mINSTALINUX: \033[41;1mrc.local aktywny\033[0m" ;;
-        2) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja RTL-SDR\033[0m" && cd ~ && git clone https://github.com/osmocom/rtl-sdr && cd rtl-sdr/ && mkdir build && cd build && cmake ../ -DINSTALL_UDEV_RULES=ON -DDETACH_KERNEL_DRIVER=ON && make && sudo make install && sudo cp ../rtl-sdr.rules /etc/udev/rules.d/ && sudo ldconfig && echo "blacklist dvb_core blacklist dvb_usb_rtl28xxu
+        1) echo -e "\033[0mINSTALINUX: \033[41;1mAktywuje rc.local...\033[0m" && cd ~ && bash <(curl -s https://www.adminsehow.com/wp-content/uploads/2019/10/rc-local.txt) && echo -e "\033[0mINSTALINUX: \033[41;1mrc.local aktywny\033[0m" ;;
+        2) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja RTL-SDR\033[0m" && cd ~ && git clone https://github.com/osmocom/rtl-sdr && cd rtl-sdr/ && mkdir build && cd build && cmake ../ -DINSTALL_UDEV_RULES=ON -DDETACH_KERNEL_DRIVER=ON && make && sudo make install && sudo cp ../rtl-sdr.rules /etc/udev/rules.d/ && sudo ldconfig && echo "blacklist dvb_core blacklist dvb_usb_rtl28xxu
 blacklist dvb_usb_rtl2832u
 blacklist dvb_usb_v2
 blacklist e4000
@@ -171,23 +171,23 @@ blacklist rtl2832
 blacklist sdr_msi3101
 blacklist msi001
 blacklist msi2500" > no-rtl.conf && sudo mv no-rtl.conf /etc/modprobe.d/ ;;
-        3) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja RSP1 SDR\033[0m" && cd ~ && git clone https://github.com/f4exb/libmirisdr-4.git && cd libmirisdr-4 && mkdir build && cd build && cmake -Wno-dev -DCMAKE_INSTALL_PREFIX=/opt/install/libmirisdr .. && make -j $(nproc) install ;;
-        4) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja VPN Wireguard\033[0m" && cd ~ && apt install wireguard wireguard-tools -y ;;
-        5) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja modulu Cockpit\033[0m" && cd ~ && sudo apt-get install -y cockpit cockpit-sosreport cockpit-storaged cockpit-docker cockpit-files cockpit-sensors cockpit-pcp && sudo systemctl start cockpit ;;
-        6) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja pakietu Docker\033[0m" && cd ~ && curl -fsSL https://test.docker.com -o test-docker.sh && sudo sh test-docker.sh && apt install docker-compose -y && docker run -d \
+        3) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja RSP1 SDR\033[0m" && cd ~ && git clone https://github.com/f4exb/libmirisdr-4.git && cd libmirisdr-4 && mkdir build && cd build && cmake -Wno-dev -DCMAKE_INSTALL_PREFIX=/opt/install/libmirisdr .. && make -j $(nproc) install ;;
+        4) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja VPN Wireguard\033[0m" && cd ~ && apt install wireguard wireguard-tools -y ;;
+        5) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja modulu Cockpit\033[0m" && cd ~ && sudo apt-get install -y cockpit cockpit-sosreport cockpit-storaged cockpit-docker cockpit-files cockpit-sensors cockpit-pcp && sudo systemctl start cockpit ;;
+        6) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja pakietu Docker\033[0m" && cd ~ && curl -fsSL https://test.docker.com -o test-docker.sh && sudo sh test-docker.sh && apt install docker-compose -y && docker run -d \
   -p 9001:9001 \
   --name portainer_agent \
   --restart=always \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /var/lib/docker/volumes:/var/lib/docker/volumes \
   portainer/agent:latest ;;
-        7) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja Webmin\033[0m" && cd ~ && curl -o webmin-setup-repos.sh https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repos.sh && bash webmin-setup-repos.sh && apt update && apt-get install webmin --install-recommends -y ;;
-		8) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja Lynis audit tool\033[0m" && sudo curl -fsSL https://packages.cisofy.com/keys/cisofy-software-public.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/cisofy-software-public.gpg && sudo echo "deb [arch=amd64,arm64 signed-by=/etc/apt/trusted.gpg.d/cisofy-software-public.gpg] https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && sudo apt install apt-transport-https && echo "deb https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && apt update && apt install lynis -y ;;
-        9) check_disk_space && clear && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja logbot AI\033[0m" && cd /opt/skrypty && wget --no-check-certificate "https://drive.google.com/file/d/1si6wSC3SC0FDxxd9xfp2Mqj1ZHYvM9HX/view?usp=sharing" -O logbot_fwd.py && chmod +x logbot_fwd.py && cd /etc/systemd/system/ && wget --no-check-certificate "https://drive.google.com/file/d/1vf-Wl1uKPv35b8ZaKjITKRGTID20HRCC/view?usp=sharing" -O logbot.service && chmod 644 logbot.service && systemctl daemon-reload && systemctl enable logbot.service && systemctl start logbot.service ;;
+        7) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja Webmin\033[0m" && cd ~ && curl -o webmin-setup-repos.sh https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repos.sh && bash webmin-setup-repos.sh && apt update && apt-get install webmin --install-recommends -y ;;
+		8) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja Lynis audit tool\033[0m" && sudo curl -fsSL https://packages.cisofy.com/keys/cisofy-software-public.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/cisofy-software-public.gpg && sudo echo "deb [arch=amd64,arm64 signed-by=/etc/apt/trusted.gpg.d/cisofy-software-public.gpg] https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && sudo apt install apt-transport-https && echo "deb https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && apt update && apt install lynis -y ;;
+        9) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja logbot AI\033[0m" && cd /opt/skrypty && wget --no-check-certificate "https://drive.google.com/file/d/1si6wSC3SC0FDxxd9xfp2Mqj1ZHYvM9HX/view?usp=sharing" -O logbot_fwd.py && chmod +x logbot_fwd.py && cd /etc/systemd/system/ && wget --no-check-certificate "https://drive.google.com/file/d/1vf-Wl1uKPv35b8ZaKjITKRGTID20HRCC/view?usp=sharing" -O logbot.service && chmod 644 logbot.service && systemctl daemon-reload && systemctl enable logbot.service && systemctl start logbot.service ;;
     esac
 done
 
-clear && echo -e "\033[0mINSTALINUX: \033[41;1mUsuwanie plikow roboczych\033[0m" &&
+echo -e "\033[0mINSTALINUX: \033[41;1mUsuwanie plikow roboczych\033[0m" &&
 sleep 5 &&
 
 sudo apt clean && sudo apt autoclean && apt autoremove -y &&
