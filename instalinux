@@ -32,13 +32,10 @@ else
     echo "Dodaję użytkownika '$user' do sudoers..."
     # Dopisanie wpisu do pliku /etc/sudoers
     # Uwaga: to polecenie wymaga uprawnień administratora, więc może być konieczne uruchomienie skryptu jako root lub użycie sudo
-    echo "$user  ALL=(ALL) NOPASSWD:ALL" | sudo tee -a /etc/sudoers >/dev/null
-    if [ $? -eq 0 ]; then
-        echo "Użytkownik '$user' został dodany do sudoers."
-    else
-        echo "Wystąpił problem podczas dodawania użytkownika do sudoers."
-    fi
-fi
+    touch /etc/sudoers.d/010_'$user'-nopasswd &&
+    echo "'$user' ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/010_'$user'-nopasswd &&
+    chown root:root /etc/sudoers.d/010_'$user'-nopasswd &&
+    chmod 440 /etc/sudoers.d/010_'$user'-nopasswd &&
 
 
 # Sprawdzanie wolnego miejsca na dysku
@@ -195,7 +192,7 @@ sleep 5 &&
 
 sudo apt clean && sudo apt autoclean && apt autoremove -y &&
 cd ~ &&
-rm -r cockpit* libmirisdr-4/ test-docker.sh &&
+rm -r libmirisdr-4/ test-docker.sh &&
 cd \
 echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja zakonczona\033[0m" &&
 sleep 3
