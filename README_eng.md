@@ -15,6 +15,8 @@
 ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝
 ```
 
+> 🌐 Language: [Polski](README.md) | **English**
+
 > An interactive script that automates the initial configuration of a fresh Debian / Ubuntu installation.  
 > Handles package installation, privilege configuration and deployment of popular software —  
 > all through a clean `whiptail` menu interface.
