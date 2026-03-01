@@ -1,44 +1,78 @@
 #!/bin/bash
+# instalinux v0.6 #
+# SQ2MTG 2026
 
-# GDZ instalinux v0.5a #
-# SQ2MTG 2025
+#####################################
+############## FUNKCJE ##############
+#####################################
 
-# Sprawdzanie, czy skrypt jest uruchomiony jako uzytkownik sudo
-if [[ $(id -u) -ne 0 ]]; then
-    echo "Ten skrypt wymaga uprawnien administratora (sudo)."
-    while true; do
-        read -p "Czy chcesz podniesc uprawnienia? (y/n): " choice
-        case "$choice" in
-            y|Y ) su -c "$(readlink -f "$0")"; exit;;
-            n|N ) echo "Przerywam skrypt."; exit 1;;
-            * ) echo "Uzyj 'y' lub 'n'.";;
-        esac
-    done
-fi
+######## podniesienie do sudo
+check_sudo() {
+    if [[ $EUID -eq 0 ]]; then
+        return 0
+    fi
 
-# Zapytaj użytkownika o nazwę użytkownika do dodania do sudoers
-read -p "Podaj nazwę użytkownika, którego chcesz dodać do sudoers: " user
+    echo "Podnoszę uprawnienia..."
 
-# Sprawdź, czy użytkownik istnieje w systemie
-if ! id "$user" &>/dev/null; then
-    echo "Użytkownik '$user' nie istnieje w systemie."
-    exit 1
-fi
+    if command -v sudo >/dev/null 2>&1; then
+        exec sudo "$0" "$@"
+    else
+        exec su -c "\"$(readlink -f "$0")\" $*"
+    fi
+}
 
-# Sprawdź, czy użytkownik jest już w pliku /etc/sudoers
-if grep -q "^$user " /etc/sudoers; then
-    echo "Użytkownik '$user' jest już dodany do sudoers."
-else
-    echo "Dodaję użytkownika '$user' do sudoers..."
-    # Dopisanie wpisu do pliku /etc/sudoers
-    # Uwaga: to polecenie wymaga uprawnień administratora, więc może być konieczne uruchomienie skryptu jako root lub użycie sudo
-    touch /etc/sudoers.d/010_'$user'-nopasswd &&
-    echo "'$user' ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/010_'$user'-nopasswd &&
-    chown root:root /etc/sudoers.d/010_'$user'-nopasswd &&
-    chmod 440 /etc/sudoers.d/010_'$user'-nopasswd &&
+######## dodanie usera do grupy sudo (debian)
+addsudo() {
 
+    # Sprawdzenie systemu
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+    else
+        echo "Nie mozna wykryc systemu."
+        return 1
+    fi
 
-# Sprawdzanie wolnego miejsca na dysku
+    case "$ID" in
+        ubuntu)
+            echo "Wykryto Ubuntu — pomijam konfiguracje sudo."
+            return 0
+            ;;
+        debian)
+            echo "Wykryto Debian."
+            ;;
+        *)
+            echo "To nie jest Debian ani Ubuntu — pomijam."
+            return 0
+            ;;
+    esac
+
+    # Zapytaj o nazwę użytkownika
+    read -p "Podaj nazwe uzytkownika do dodania do grupy sudo: " USER_TO_ADD
+
+    # Sprawdzenie czy użytkownik istnieje
+    if ! id "$USER_TO_ADD" >/dev/null 2>&1; then
+        echo "Uzytkownik $USER_TO_ADD nie istnieje."
+        return 1
+    fi
+
+    # Sprawdzenie czy jest już w grupie sudo
+    if id -nG "$USER_TO_ADD" | grep -qw sudo; then
+        echo "Uzytkownik $USER_TO_ADD jest juz w grupie sudo."
+        return 0
+    fi
+
+    echo "Dodaje uzytkownika $USER_TO_ADD do grupy sudo..."
+    usermod -aG sudo "$USER_TO_ADD"
+
+    if [[ $? -eq 0 ]]; then
+        echo "Uzytkownik $USER_TO_ADD zostal dodany do grupy sudo."
+    else
+        echo "Wystapil blad podczas dodawania."
+        return 1
+    fi
+}
+
+######## Sprawdzanie wolnego miejsca na dysku
 check_disk_space() {
     echo -e "\033[0mINSTALINUX: \033[41;1mSprawdzam dostepne miejsce na dysku...\033[0m"
     local disk_usage=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
@@ -56,6 +90,184 @@ check_disk_space() {
         echo "Wolne miejsce na dysku jest wystarczajace zeby kontynuowac..."
         sleep 3
     fi
+}
+
+######## instalacja pakietow
+pkg_install() {
+    local WYBOR
+    declare -a PAKIETY=()
+
+    # CHECKLISTA
+    WYBOR=$(whiptail --title "Instalacja pakietów" \
+        --checklist "Wybierz pakiety do zainstalowania:" 25 80 15 \
+        "git"             "System kontroli wersji"                OFF \
+        "ssh"             "Klient OpenSSH"                        OFF \
+        "curl"            "Transfer danych URL"                   OFF \
+        "wget"            "Pobieranie plików"                      OFF \
+        "gzip"            "Kompresja plików"                       OFF \
+        "make"            "Narzędzie budowania"                    OFF \
+        "cmake"           "System budowania projektów"             OFF \
+        "build-essential" "Podstawowe narzędzia kompilacyjne"      OFF \
+        "gdebi"           "Instalacja pakietów .deb"               OFF \
+        "htop"            "Monitor procesów"                       OFF \
+        "rdate"           "Synchronizacja czasu"                   OFF \
+        "nodejs npm"      "Node.js + npm"                          OFF \
+        "php"             "Interpreter PHP"                        OFF \
+        "audio"           "Pakiety audio (alsa, libasound2)"       OFF \
+        "POMIN"           ">>> Pomiń instalację i przejdź dalej <<<" OFF \
+        3>&1 1>&2 2>&3)
+
+    local STATUS=$?
+    [ $STATUS -ne 0 ] && return 2
+
+    WYBOR=$(echo "$WYBOR" | tr -d '"')
+
+    # Pomiń instalację
+    if echo "$WYBOR" | grep -qw POMIN; then
+        return 1
+    fi
+
+    # Zamiana wybranych pakietów na listę
+    for pkg in $WYBOR; do
+        case $pkg in
+            nodejs)
+                PAKIETY+=("nodejs" "npm")
+                ;;
+            audio)
+                PAKIETY+=("alsa-utils" "libasound2-dev")
+                ;;
+            *)
+                PAKIETY+=("$pkg")
+                ;;
+        esac
+    done
+
+    if [ ${#PAKIETY[@]} -eq 0 ]; then
+        whiptail --msgbox "Nie wybrano żadnych pakietów." 10 50
+        return 2
+    fi
+
+    # POTWIERDZENIE
+    whiptail --yesno "Zainstalować pakiety:\n\n${PAKIETY[*]} ?" 15 70
+    [ $? -ne 0 ] && return 2
+
+    # GAUGE – pasek postępu instalacji
+    local COUNT=0
+    local TOTAL=${#PAKIETY[@]}
+
+    {
+        for pkg in "${PAKIETY[@]}"; do
+            COUNT=$((COUNT+1))
+            PERCENT=$(( COUNT * 100 / TOTAL ))
+            echo $PERCENT
+            echo "Instalowanie: $pkg..."
+            sudo apt install -y "$pkg" > /dev/null 2>&1
+        done
+    } | whiptail --gauge "Instalacja pakietów..." 10 70 0
+
+    whiptail --msgbox "Instalacja zakończona!" 10 50
+    return 0
+}
+
+######## instalacja oprogramowania opcjonalnego
+opt_install() {
+    declare -a OPCJE_WYBRANE=()
+    local WYBOR
+
+    # CHECKLISTA
+    WYBOR=$(whiptail --title "Menu główne" \
+        --checklist "Wybierz opcje do wykonania:" 25 80 15 \
+        "rc_local"       "Przywrócenie rc.local"               OFF \
+        "sdr_rtl"        "SDR RTL + BLACKLIST"                 OFF \
+        "sdr_rsp1"       "SDR RSP1"                            OFF \
+        "vpn_wireguard"  "VPN Wireguard"                        OFF \
+        "vpn_zerotier"   "VPN ZeroTier"                         OFF \
+        "cockpit"        "Cockpit + plugins"                   OFF \
+        "docker"         "Docker + Compose + Portainer"        OFF \
+        "lynis"          "Lynis audit"                          OFF \
+        "POMIN"          ">>> Pomiń i przejdź dalej <<<"       OFF \
+        3>&1 1>&2 2>&3)
+
+    local STATUS=$?
+    [ $STATUS -ne 0 ] && return 1
+
+    WYBOR=$(echo "$WYBOR" | tr -d '"')
+
+    # Opcja pomiń
+    if echo "$WYBOR" | grep -qw POMIN; then
+        return 2
+    fi
+
+    # Zamiana wybranych opcji na tablicę
+    for opcja in $WYBOR; do
+        OPCJE_WYBRANE+=("$opcja")
+    done
+
+    if [ ${#OPCJE_WYBRANE[@]} -eq 0 ]; then
+        whiptail --msgbox "Nie wybrano żadnych opcji." 10 50
+        return 2
+    fi
+
+    # GAUGE – pasek postępu
+    local COUNT=0
+    local TOTAL=${#OPCJE_WYBRANE[@]}
+
+    {
+        for opcja in "${OPCJE_WYBRANE[@]}"; do
+            COUNT=$((COUNT+1))
+            PERCENT=$(( COUNT * 100 / TOTAL ))
+            echo $PERCENT
+            echo "Wykonywanie: $opcja..."
+
+            case $opcja in
+                rc_local)
+                    cd ~ && bash <(curl -s https://www.adminsehow.com/wp-content/uploads/2019/10/rc-local.txt)
+                    ;;
+                sdr_rtl)
+                    cd ~ && git clone https://github.com/osmocom/rtl-sdr && cd rtl-sdr/ && mkdir build && cd build && cmake ../ -DINSTALL_UDEV_RULES=ON -DDETACH_KERNEL_DRIVER=ON && make && sudo make install && sudo cp ../rtl-sdr.rules /etc/udev/rules.d/ && sudo ldconfig && echo "blacklist dvb_core blacklist dvb_usb_rtl28xxu
+blacklist dvb_usb_rtl2832u
+blacklist dvb_usb_v2
+blacklist e4000
+blacklist fc0013
+blacklist r820t
+blacklist rtl2830
+blacklist rtl2832
+blacklist sdr_msi3101
+blacklist msi001
+blacklist msi2500" > no-rtl.conf && sudo mv no-rtl.conf /etc/modprobe.d/
+                    ;;
+                sdr_rsp1)
+                    cd ~ && git clone https://github.com/f4exb/libmirisdr-4.git && cd libmirisdr-4 && mkdir build && cd build && cmake -Wno-dev -DCMAKE_INSTALL_PREFIX=/opt/install/libmirisdr .. && make -j $(nproc) install
+                    ;;
+                vpn_wireguard)
+                    cd ~ && apt install wireguard wireguard-tools -y
+                    ;;
+                vpn_zerotier)
+                    curl -s https://install.zerotier.com | sudo bash
+                    ;;
+                cockpit)
+                    apt install cockpit* -y && sudo systemctl start cockpit
+                    ;;
+                docker)
+                    cd ~ && curl -fsSL https://test.docker.com -o test-docker.sh && sudo sh test-docker.sh && apt install docker-compose -y && docker run -d \
+  -p 9001:9001 \
+  --name portainer_agent \
+  --restart=always \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /var/lib/docker/volumes:/var/lib/docker/volumes \
+  portainer/agent:latest
+                    ;;
+                lynis)
+                    sudo curl -fsSL https://packages.cisofy.com/keys/cisofy-software-public.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/cisofy-software-public.gpg && sudo echo "deb [arch=amd64,arm64 signed-by=/etc/apt/trusted.gpg.d/cisofy-software-public.gpg] https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && sudo apt install apt-transport-https && echo "deb https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && apt update && apt install lynis -y
+                    ;;
+            esac
+
+            sleep 1  # opcjonalne, żeby pasek się wizualnie przesuwał
+        done
+    } | whiptail --gauge "Wykonywanie wybranych opcji..." 10 70 0
+
+    whiptail --msgbox "Wykonanie zakończone!" 10 50
+    return 0
 }
 
 ## Najwazniejsze BHP
@@ -78,114 +290,36 @@ echo -e "\033[0mINSTALINUX: \033[41;1m Instalacja dialog i sudo\033[0m"
 
 apt install sudo -y &&
 apt install dialog -y &&
+apt install whiptail -y &&
 clear
 
 echo -e "\033[0mINSTALINUX: \033[41;1mTworze katalogi robocze w /opt\033[0m"
-sudo mkdir -p /opt/{log,skrypty,backup}
-chmod 777 /opt/*
+sudo mkdir -p /opt/{log,skrypty,backup,cloud}
+chmod 770 /opt/*
 echo -e "\033[0mINSTALINUX: \033[41;1mKatalogi utworzone\033[0m"
 sleep 2
 
-check_disk_space
+check_disk_space &&
+pkg_install
 
-onoff=off
-cmd=(dialog --output-fd 1 --separate-output --extra-button --extra-label 'Wszystkie' --cancel-label 'Zadne' --checklist 'Wybierz pakiety do instalacji:' 0 0 0)
-load-dialog () {
-    options=(
-                1 'Update & Upgrade' $onoff
-                2 'curl git make cmake gdebi wget gzip tar autoconf ssh' $onoff
-                3 'build-essential  software-properties-common g++ gcc' $onoff
-                4 'golang  nodejs  npm' $onoff
-                5 'php packet' $onoff
-                6 'libs packet' $onoff
-                7 'ALSA Audio libs' $onoff
-                8 'htop  rdate  chkrootkit ' $onoff
-    )
-    choices=$("${cmd[@]}" "${options[@]}")
-}
-load-dialog
-exit_code="$?"
-while [[ $exit_code -ne 0 ]]; do
-    case $exit_code in
-        1) clear; onoff=off; load-dialog;;
-        3) clear; onoff=on; load-dialog;;
-    esac
-    exit_code="$?"
-done
-clear
-for choice in $choices
-do
-    case $choice in
-        1) sudo apt update -y && sudo apt upgrade -y && check_disk_space ;;
-        2) check_disk_space && sudo apt install curl git make cmake wget gzip autoconf tar ssh g++ gcc -y ;;
-        3) check_disk_space && sudo apt install build-essential software-properties-common -y ;;
-        4) check_disk_space && sudo apt install golang nodejs npm -y ;;
-        5) check_disk_space && sudo apt install php libapache2-mod-php php-mbstring php-cgi php-common php-curl -y ;;
-        6) check_disk_space && sudo apt install libpopt-dev libsigc++-2.0-dev libgcrypt20-dev libgsm1-dev librtlsdr-dev libusb-dev libjsoncpp-dev libgpiod2 libgpiod-dev libcurl4-openssl-dev libjson-perl libwww-perl -y ;;
-        7) check_disk_space && sudo apt install alsa-utils libspeex-dev libspeexdsp-dev libopus-dev libvorbis-dev libasound2-dev -y ;;
-        8) check_disk_space && sudo apt install htop rdate chkrootkit -y ;;
-    esac
-done
+case $? in
+    0) echo "Pakiety zainstalowane." ;;
+    1) echo "Pominięto instalację, przechodzę dalej..." ;;
+    2) echo "Anulowano wybór lub brak pakietów." ;;
+esac
 
-echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja oprogramowania i modulow opcjonalnych\033[0m"
-sleep 2
+echo "OPROGRAMOWANIE DODATKOWE"
 
-onoff2=off
-cmd2=(dialog --output-fd 1 --separate-output --extra-button --extra-label 'Wszystkie' --cancel-label 'Zadne' --checklist 'Wybierz oprogramowanie do skonfigurowania:' 0 0 0)
-load-dialog () {
-    options=(
-                1 'Przywrocenie rc.local' $onoff2
-                2 'SDR RTL + BLACKLIST' $onoff2
-                3 'SDR RSP1' $onoff2
-                4 'VPN Wireguard' $onoff2
-                5 'Cockpit + plugins' $onoff2
-                6 'Docker + Compose + portainer' $onoff2
-                7 'Webmin' $onoff2
-				8 'Lynis audit' $onoff2
-                9 'logbot AI' $onoff2
-    )
-    choices2=$("${cmd2[@]}" "${options[@]}")
-}
-load-dialog
+check_disk_space &&
+opt_install
 
-exit_code="$?"
-while [[ $exit_code -ne 0 ]]; do
-    case $exit_code in
-        1) clear; onoff2=off; load-dialog;;
-        3) clear; onoff2=on; load-dialog;;
-    esac
-    exit_code="$?"
-done
-for choice2 in $choices2
-do
-    case $choice2 in
-        1) echo -e "\033[0mINSTALINUX: \033[41;1mAktywuje rc.local...\033[0m" && cd ~ && bash <(curl -s https://www.adminsehow.com/wp-content/uploads/2019/10/rc-local.txt) && echo -e "\033[0mINSTALINUX: \033[41;1mrc.local aktywny\033[0m" ;;
-        2) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja RTL-SDR\033[0m" && cd ~ && git clone https://github.com/osmocom/rtl-sdr && cd rtl-sdr/ && mkdir build && cd build && cmake ../ -DINSTALL_UDEV_RULES=ON -DDETACH_KERNEL_DRIVER=ON && make && sudo make install && sudo cp ../rtl-sdr.rules /etc/udev/rules.d/ && sudo ldconfig && echo "blacklist dvb_core blacklist dvb_usb_rtl28xxu
-blacklist dvb_usb_rtl2832u
-blacklist dvb_usb_v2
-blacklist e4000
-blacklist fc0013
-blacklist r820t
-blacklist rtl2830
-blacklist rtl2832
-blacklist sdr_msi3101
-blacklist msi001
-blacklist msi2500" > no-rtl.conf && sudo mv no-rtl.conf /etc/modprobe.d/ ;;
-        3) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja RSP1 SDR\033[0m" && cd ~ && git clone https://github.com/f4exb/libmirisdr-4.git && cd libmirisdr-4 && mkdir build && cd build && cmake -Wno-dev -DCMAKE_INSTALL_PREFIX=/opt/install/libmirisdr .. && make -j $(nproc) install ;;
-        4) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja VPN Wireguard\033[0m" && cd ~ && apt install wireguard wireguard-tools -y ;;
-        5) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja modulu Cockpit\033[0m" && cd ~ && sudo apt-get install -y cockpit cockpit-sosreport cockpit-storaged cockpit-docker cockpit-files cockpit-sensors cockpit-pcp && sudo systemctl start cockpit ;;
-        6) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mKonfiguracja pakietu Docker\033[0m" && cd ~ && curl -fsSL https://test.docker.com -o test-docker.sh && sudo sh test-docker.sh && apt install docker-compose -y && docker run -d \
-  -p 9001:9001 \
-  --name portainer_agent \
-  --restart=always \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /var/lib/docker/volumes:/var/lib/docker/volumes \
-  portainer/agent:latest ;;
-        7) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja Webmin\033[0m" && cd ~ && curl -o webmin-setup-repos.sh https://raw.githubusercontent.com/webmin/webmin/master/webmin-setup-repos.sh && bash webmin-setup-repos.sh && apt update && apt-get install webmin --install-recommends -y ;;
-		8) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja Lynis audit tool\033[0m" && sudo curl -fsSL https://packages.cisofy.com/keys/cisofy-software-public.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/cisofy-software-public.gpg && sudo echo "deb [arch=amd64,arm64 signed-by=/etc/apt/trusted.gpg.d/cisofy-software-public.gpg] https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && sudo apt install apt-transport-https && echo "deb https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && apt update && apt install lynis -y ;;
-        9) check_disk_space && echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja logbot AI\033[0m" && cd /opt/skrypty && wget --no-check-certificate "https://drive.google.com/file/d/1si6wSC3SC0FDxxd9xfp2Mqj1ZHYvM9HX/view?usp=sharing" -O logbot_fwd.py && chmod +x logbot_fwd.py && cd /etc/systemd/system/ && wget --no-check-certificate "https://drive.google.com/file/d/1vf-Wl1uKPv35b8ZaKjITKRGTID20HRCC/view?usp=sharing" -O logbot.service && chmod 644 logbot.service && systemctl daemon-reload && systemctl enable logbot.service && systemctl start logbot.service ;;
-    esac
-done
+case $? in
+    0) echo "Opcje wykonane." ;;
+    2) echo "Pominięto menu." ;;
+    1) echo "Anulowano wybór." ;;
+esac
+
+echo "Gotowe!"
 
 echo -e "\033[0mINSTALINUX: \033[41;1mUsuwanie plikow roboczych\033[0m" &&
 sleep 5 &&
@@ -193,8 +327,8 @@ sleep 5 &&
 sudo apt clean && sudo apt autoclean && apt autoremove -y &&
 cd ~ &&
 rm -r libmirisdr-4/ test-docker.sh &&
-cd \
+cd /
 echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja zakonczona\033[0m" &&
 sleep 3
-
+clear
 exit 0
