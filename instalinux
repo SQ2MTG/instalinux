@@ -111,7 +111,7 @@ pkg_install() {
         "gdebi"           "Instalacja pakietów .deb"               OFF \
         "htop"            "Monitor procesów"                       OFF \
         "rdate"           "Synchronizacja czasu"                   OFF \
-        "nodejs npm"      "Node.js + npm"                          OFF \
+        "nodejs"      "Node.js + npm"                          OFF \
         "php"             "Interpreter PHP"                        OFF \
         "audio"           "Pakiety audio (alsa, libasound2)"       OFF \
         "POMIN"           ">>> Pomiń instalację i przejdź dalej <<<" OFF \
@@ -159,8 +159,7 @@ pkg_install() {
         for pkg in "${PAKIETY[@]}"; do
             COUNT=$((COUNT+1))
             PERCENT=$(( COUNT * 100 / TOTAL ))
-            echo $PERCENT
-            echo "Instalowanie: $pkg..."
+            printf "XXX\n%d\n%s\nXXX\n" "$PERCENT" "Instalowanie: $pkg..."
             sudo apt install -y "$pkg" > /dev/null 2>&1
         done
     } | whiptail --gauge "Instalacja pakietów..." 10 70 0
@@ -216,15 +215,15 @@ opt_install() {
         for opcja in "${OPCJE_WYBRANE[@]}"; do
             COUNT=$((COUNT+1))
             PERCENT=$(( COUNT * 100 / TOTAL ))
-            echo $PERCENT
-            echo "Wykonywanie: $opcja..."
+            printf "XXX\n%d\n%s\nXXX\n" "$PERCENT" "Instalowanie: $opcja..."
 
             case $opcja in
                 rc_local)
-                    cd ~ && bash <(curl -s https://www.adminsehow.com/wp-content/uploads/2019/10/rc-local.txt)
+                    cd ~ && bash <(curl -s https://www.adminsehow.com/wp-content/uploads/2019/10/rc-local.txt) > /dev/null 2>&1
                     ;;
                 sdr_rtl)
-                    cd ~ && git clone https://github.com/osmocom/rtl-sdr && cd rtl-sdr/ && mkdir build && cd build && cmake ../ -DINSTALL_UDEV_RULES=ON -DDETACH_KERNEL_DRIVER=ON && make && sudo make install && sudo cp ../rtl-sdr.rules /etc/udev/rules.d/ && sudo ldconfig && echo "blacklist dvb_core blacklist dvb_usb_rtl28xxu
+                    cd ~ && git clone https://github.com/osmocom/rtl-sdr > /dev/null 2>&1 && cd rtl-sdr/ && mkdir build && cd build && cmake ../ -DINSTALL_UDEV_RULES=ON -DDETACH_KERNEL_DRIVER=ON > /dev/null 2>&1 && make > /dev/null 2>&1 && sudo make install > /dev/null 2>&1 && sudo cp ../rtl-sdr.rules /etc/udev/rules.d/ && sudo ldconfig && echo "blacklist dvb_core
+blacklist dvb_usb_rtl28xxu
 blacklist dvb_usb_rtl2832u
 blacklist dvb_usb_v2
 blacklist e4000
@@ -234,31 +233,31 @@ blacklist rtl2830
 blacklist rtl2832
 blacklist sdr_msi3101
 blacklist msi001
-blacklist msi2500" > no-rtl.conf && sudo mv no-rtl.conf /etc/modprobe.d/
+blacklist msi2500" > no-rtl.conf && sudo mv no-rtl.conf /etc/modprobe.d/ > /dev/null 2>&1
                     ;;
                 sdr_rsp1)
-                    cd ~ && git clone https://github.com/f4exb/libmirisdr-4.git && cd libmirisdr-4 && mkdir build && cd build && cmake -Wno-dev -DCMAKE_INSTALL_PREFIX=/opt/install/libmirisdr .. && make -j $(nproc) install
+                    cd ~ && git clone https://github.com/f4exb/libmirisdr-4.git > /dev/null 2>&1 && cd libmirisdr-4 && mkdir build && cd build && cmake -Wno-dev -DCMAKE_INSTALL_PREFIX=/opt/install/libmirisdr .. > /dev/null 2>&1 && make -j $(nproc) install > /dev/null 2>&1
                     ;;
                 vpn_wireguard)
-                    cd ~ && apt install wireguard wireguard-tools -y
+                    cd ~ && apt install wireguard wireguard-tools -y > /dev/null 2>&1
                     ;;
                 vpn_zerotier)
-                    curl -s https://install.zerotier.com | sudo bash
+                    curl -s https://install.zerotier.com | sudo bash > /dev/null 2>&1
                     ;;
                 cockpit)
-                    apt install cockpit* -y && sudo systemctl start cockpit
+                    apt install cockpit* -y > /dev/null 2>&1 && sudo systemctl start cockpit > /dev/null 2>&1
                     ;;
                 docker)
-                    cd ~ && curl -fsSL https://test.docker.com -o test-docker.sh && sudo sh test-docker.sh && apt install docker-compose -y && docker run -d \
+                    cd ~ && curl -fsSL https://get.docker.com -o get-docker.sh > /dev/null 2>&1 && sudo sh get-docker.sh > /dev/null 2>&1 && apt install docker-compose -y > /dev/null 2>&1 && docker run -d \
   -p 9001:9001 \
   --name portainer_agent \
   --restart=always \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /var/lib/docker/volumes:/var/lib/docker/volumes \
-  portainer/agent:latest
+  portainer/agent:latest > /dev/null 2>&1
                     ;;
                 lynis)
-                    sudo curl -fsSL https://packages.cisofy.com/keys/cisofy-software-public.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/cisofy-software-public.gpg && sudo echo "deb [arch=amd64,arm64 signed-by=/etc/apt/trusted.gpg.d/cisofy-software-public.gpg] https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && sudo apt install apt-transport-https && echo "deb https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list && apt update && apt install lynis -y
+                    sudo curl -fsSL https://packages.cisofy.com/keys/cisofy-software-public.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/cisofy-software-public.gpg > /dev/null 2>&1 && echo "deb [arch=amd64,arm64 signed-by=/etc/apt/trusted.gpg.d/cisofy-software-public.gpg] https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list > /dev/null 2>&1 && sudo apt install apt-transport-https -y > /dev/null 2>&1 && apt update > /dev/null 2>&1 && apt install lynis -y > /dev/null 2>&1
                     ;;
             esac
 
@@ -286,6 +285,9 @@ read -p "Skrypt instalacyjny linux, nacisnij ENTER zeby kontynuowac..."
 
 clear
 
+echo -e "\033[0mINSTALINUX: \033[41;1m Konfiguracja sudo\033[0m"
+check_sudo &&
+addsudo
 echo -e "\033[0mINSTALINUX: \033[41;1m Instalacja dialog i sudo\033[0m"
 
 apt install sudo -y &&
@@ -300,6 +302,7 @@ echo -e "\033[0mINSTALINUX: \033[41;1mKatalogi utworzone\033[0m"
 sleep 2
 
 check_disk_space &&
+apt update &&
 pkg_install
 
 case $? in
@@ -311,6 +314,7 @@ esac
 echo "OPROGRAMOWANIE DODATKOWE"
 
 check_disk_space &&
+apt update &&
 opt_install
 
 case $? in
@@ -326,7 +330,7 @@ sleep 5 &&
 
 sudo apt clean && sudo apt autoclean && apt autoremove -y &&
 cd ~ &&
-rm -r libmirisdr-4/ test-docker.sh &&
+rm -rf libmirisdr-4/ get-docker.sh 2>/dev/null &&
 cd /
 echo -e "\033[0mINSTALINUX: \033[41;1mInstalacja zakonczona\033[0m" &&
 sleep 3
