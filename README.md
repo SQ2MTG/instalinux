@@ -15,6 +15,9 @@
 ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝
 ```
 
+> 🌐 Language: **Polski** | [English](README_eng.md)
+
+
 > Interaktywny skrypt automatyzujący konfigurację świeżej instalacji Debian / Ubuntu.  
 > Obsługuje instalację pakietów, konfigurację uprawnień i wdrożenie popularnego oprogramowania —  
 > wszystko przez czytelne menu `whiptail`.
