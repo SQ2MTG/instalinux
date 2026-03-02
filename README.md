@@ -176,6 +176,7 @@ Skrypt automatycznie tworzy strukturę katalogów w `/opt`:
 
 - ✅ Debian 11 (Bullseye)
 - ✅ Debian 12 (Bookworm)
+- ✅ Debian 13 (Trixie)
 - ✅ Ubuntu 22.04 LTS
 - ✅ Ubuntu 24.04 LTS
 
