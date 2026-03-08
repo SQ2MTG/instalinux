@@ -53,7 +53,7 @@
 ### Pobierz i uruchom jedną komendą:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SQ2MTG/instalinux/instalinux.sh -o instalinux.sh && chmod +x instalinux.sh && sudo ./instalinux.sh
+curl -fsSL https://raw.githubusercontent.com/SQ2MTG/instalinux/instalinux -o instalinux && chmod +x instalinux && sudo ./instalinux
 ```
 
 ### Lub ręcznie:
