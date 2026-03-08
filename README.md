@@ -66,10 +66,10 @@ git clone https://github.com/SQ2MTG/instalinux.git
 cd instalinux
 
 # 3. Nadaj uprawnienia
-chmod +x instalinux.sh
+chmod +x instalinux
 
 # 4. Uruchom
-sudo ./instalinux.sh
+sudo ./instalinux
 ```
 
 ---
