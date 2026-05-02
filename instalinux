@@ -296,7 +296,7 @@ apt install whiptail -y &&
 clear
 
 echo -e "\033[0mINSTALINUX: \033[41;1mTworze katalogi robocze w /opt\033[0m"
-sudo mkdir -p /opt/{log,skrypty,backup,cloud}
+sudo mkdir -p /opt/{log,skrypty,backup,cloud,docker}
 chmod 770 /opt/*
 echo -e "\033[0mINSTALINUX: \033[41;1mKatalogi utworzone\033[0m"
 sleep 2
